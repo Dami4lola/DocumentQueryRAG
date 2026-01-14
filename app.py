@@ -42,7 +42,7 @@ with st.sidebar:
     st.header("2. Upload Document")
     uploaded_file = st.file_uploader("Upload a PDF", type="pdf")
 
-# --- HELPER FUNCTIONS (Raw Python - No LangChain) ---
+# --- HELPER FUNCTIONS ---
 
 def get_pdf_text(pdf_file):
     reader = PdfReader(pdf_file)
