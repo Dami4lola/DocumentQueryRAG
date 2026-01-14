@@ -2,3 +2,4 @@ streamlit
 openai
 pinecone
 python-dotenv
+pypdf
