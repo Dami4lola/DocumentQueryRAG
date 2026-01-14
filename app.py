@@ -1,42 +1,66 @@
 import streamlit as st
 import os
+import time
+from dotenv import load_dotenv
 from openai import OpenAI
 from pinecone import Pinecone
+from pypdf import PdfReader
+
+# Load environment variables
+load_dotenv()
 
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="Smart Doc Query", page_icon="🤖")
-st.title("🤖 Smart Document Assistant")
+st.set_page_config(page_title="Smart Doc Query", page_icon="📄")
+st.title("📄 Smart Document Assistant")
 
-# --- SIDEBAR (Secure Key Entry) ---
-with st.sidebar:
-    st.header("Settings")
-    # Tries to get keys from Secrets first, or asks user to input them
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if not openai_key:
-        openai_key = st.text_input("Enter OpenAI API Key", type="password")
-        
-    pinecone_key = os.getenv("PINECONE_API_KEY") 
-    index_name = os.getenv("PINECONE_INDEX_NAME")
-
-# --- INITIALIZE CLIENTS ---
-if openai_key and pinecone_key and index_name:
-    client = OpenAI(api_key=openai_key)
-    pc = Pinecone(api_key=pinecone_key)
-    index = pc.Index(index_name)
-else:
-    st.warning("⚠️ Please ensure API Keys are set in your .env file or sidebar.")
-    st.stop()
-
-# --- CHAT HISTORY (Memory) ---
+# --- SESSION STATE INITIALIZATION ---
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(time.time()) # Unique ID for this user session
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "file_processed" not in st.session_state:
+    st.session_state.file_processed = False
 
-# Display previous messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# --- SIDEBAR: SETTINGS & UPLOAD ---
+with st.sidebar:
+    st.header("1. Configuration")
+    openai_key = os.getenv("OPENAI_API_KEY")
+    pinecone_key = os.getenv("PINECONE_API_KEY") 
+    index_name = os.getenv("PINECONE_INDEX_NAME")
+    
+    if openai_key and pinecone_key:
+        st.success("API Keys Loaded")
+        client = OpenAI(api_key=openai_key)
+        pc = Pinecone(api_key=pinecone_key)
+        index = pc.Index(index_name)
+    else:
+        st.error("Missing API Keys in .env")
+        st.stop()
 
-# --- CORE RAG LOGIC ---
+    st.divider()
+    
+    st.header("2. Upload Document")
+    uploaded_file = st.file_uploader("Upload a PDF", type="pdf")
+
+# --- HELPER FUNCTIONS (Raw Python - No LangChain) ---
+
+def get_pdf_text(pdf_file):
+    reader = PdfReader(pdf_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+    return text
+
+def chunk_text(text, chunk_size=1000, overlap=200):
+    """Simple chunking function to break text into smaller pieces."""
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        chunks.append(text[start:end])
+        start += chunk_size - overlap # Move forward but keep some overlap
+    return chunks
+
 def get_embedding(text):
     response = client.embeddings.create(
         input=text,
@@ -44,60 +68,104 @@ def get_embedding(text):
     )
     return response.data[0].embedding
 
-def find_best_matches(query_vector):
-    results = index.query(
-        vector=query_vector,
-        top_k=3,
-        include_metadata=True
-    )
-    return [match['metadata']['text'] for match in results['matches']]
+def process_and_upload(file, namespace):
+    """Reads PDF, chunks it, embeds it, and saves to Pinecone."""
+    status = st.empty()
+    status.text("Reading PDF...")
+    raw_text = get_pdf_text(file)
+    
+    status.text("Chunking text...")
+    text_chunks = chunk_text(raw_text)
+    
+    status.text(f"Embedding {len(text_chunks)} chunks... (This may take a moment)")
+    
+    vectors = []
+    for i, chunk in enumerate(text_chunks):
+        embedding = get_embedding(chunk)
+        # Create a unique ID for each chunk
+        vector_id = f"{namespace}_{i}"
+        
+        # Prepare vector for Pinecone
+        vectors.append({
+            "id": vector_id,
+            "values": embedding,
+            "metadata": {"text": chunk}
+        })
+    
+    # Batch upsert to Pinecone (Max 100 at a time is safer)
+    status.text("Saving to Database...")
+    index.upsert(vectors=vectors, namespace=namespace)
+    
+    status.success("Document processed! You can now chat.")
+    time.sleep(2)
+    status.empty()
 
-# --- USER INPUT ---
-if prompt := st.chat_input("Ask a question about your document..."):
-    # 1. Show User Message
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    st.session_state.messages.append({"role": "user", "content": prompt})
+# --- MAIN LOGIC ---
 
-    # 2. Process (RAG)
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        message_placeholder.markdown("Thinking...")
+# 1. Handle File Upload
+if uploaded_file and not st.session_state.file_processed:
+    process_and_upload(uploaded_file, st.session_state.session_id)
+    st.session_state.file_processed = True
 
-        try:
-            # Step A: Embed
-            vector = get_embedding(prompt)
-            
-            # Step B: Search
-            matches = find_best_matches(vector)
-            context_block = "\n---\n".join(matches)
+# 2. Chat Interface
+if st.session_state.file_processed:
+    # Display chat history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-            # Step C: Prompt
-            full_prompt = f"""
-            You are a helpful assistant. Answer based ONLY on the context below.
-            
-            CONTEXT:
-            {context_block}
-            
-            QUESTION:
-            {prompt}
-            """
+    # Handle user input
+    if prompt := st.chat_input("Ask about your PDF..."):
+        # User message
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
 
-            # Step D: Generate
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": full_prompt}
-                ],
-                temperature=0
-            )
-            
-            answer = response.choices[0].message.content
-            message_placeholder.markdown(answer)
-            
-            # Save Assistant Response
-            st.session_state.messages.append({"role": "assistant", "content": answer})
+        # Assistant Logic
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            message_placeholder.markdown("Thinking...")
 
-        except Exception as e:
-            message_placeholder.error(f"Error: {e}")
+            try:
+                # A. Embed Question
+                query_vector = get_embedding(prompt)
+                
+                # B. Search Pinecone (Only inside this user's namespace)
+                search_results = index.query(
+                    namespace=st.session_state.session_id, # <--- CRITICAL
+                    vector=query_vector,
+                    top_k=3,
+                    include_metadata=True
+                )
+                
+                matches = [match['metadata']['text'] for match in search_results['matches']]
+                context_block = "\n---\n".join(matches)
+
+                # C. Generate Answer
+                full_prompt = f"""
+                You are a helpful assistant. Answer based ONLY on the context below.
+                
+                CONTEXT:
+                {context_block}
+                
+                QUESTION:
+                {prompt}
+                """
+
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": full_prompt}
+                    ],
+                    temperature=0
+                )
+                answer = response.choices[0].message.content
+                
+                message_placeholder.markdown(answer)
+                st.session_state.messages.append({"role": "assistant", "content": answer})
+
+            except Exception as e:
+                message_placeholder.error(f"Error: {e}")
+else:
+    st.info("👈 Please upload a PDF file to begin.")
