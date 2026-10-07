@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #202a27;
+  --muted: #6b7a72;
+  --brand: #176b52;
+  --brand-hover: #125842;
+  --brand-soft: #e9f3ed;
+  --line: #e4e9e3;
+  --paper: #fbfcf9;
+  --surface: #ffffff;
+  --sidebar: #f2f5f0;
+  --danger: #b4372f;
+  --danger-soft: #fbecea;
+  --warn-soft: #fbf4e4;
+  --warn: #8a5a00;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e6ece8;
+    --muted: #93a39a;
+    --brand: #4cc59a;
+    --brand-hover: #6fd6b0;
+    --brand-soft: #173328;
+    --line: #26302c;
+    --paper: #111614;
+    --surface: #171e1b;
+    --sidebar: #141a17;
+    --danger: #f08a80;
+    --danger-soft: #3a1d1a;
+    --warn-soft: #33290f;
+    --warn: #e8c370;
+  }
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-line: var(--line);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sidebar: var(--sidebar);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-manrope);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Markdown answers */
+.answer > * + * { margin-top: 0.75em; }
+.answer ul { list-style: disc; padding-left: 1.25rem; }
+.answer ol { list-style: decimal; padding-left: 1.25rem; }
+.answer li + li { margin-top: 0.25em; }
+.answer strong { font-weight: 600; }
+.answer h1, .answer h2, .answer h3 { font-family: var(--font-display); font-weight: 700; }
+.answer code {
+  background: var(--brand-soft);
+  border-radius: 6px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+
+.streaming-cursor::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--brand);
+  border-radius: 2px;
+  animation: blink 1s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to { visibility: hidden; }
+}
