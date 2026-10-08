@@ -1,10 +1,10 @@
 # Papertrail · Document Q&A
 
-A Next.js app for chatting with PDF documents. PDFs are split into overlapping passages, embedded with OpenAI, and searched in Pinecone. Answers stream in and include the passages they were based on. Ready to deploy on Vercel.
+A Next.js app for chatting with PDF and Word (.docx) documents. Documents are split into overlapping passages, embedded with OpenAI, and searched in Pinecone. Answers stream in and include the passages they were based on. Ready to deploy on Vercel.
 
 ## How it works
 
-1. The browser extracts the PDF's text page by page (with [`unpdf`](https://github.com/unjs/unpdf)), so only text is uploaded.
+1. The browser extracts the document's text: PDFs page by page with [`unpdf`](https://github.com/unjs/unpdf), and Word files with [`mammoth`](https://github.com/mwilliamson/mammoth.js). Only text is uploaded. Word files have no fixed pages, so their text is grouped into pages of about 3,000 characters.
 2. `POST /api/ingest` splits the text into 1,000-character passages (800-character stride), embeds them with `text-embedding-3-small`, and stores them in a new Pinecone namespace.
 3. `POST /api/ask` embeds the question, retrieves the top 3 passages, and streams an answer from `gpt-4o-mini` that is grounded only in those passages.
 
@@ -37,7 +37,7 @@ Requires Node.js 20.9+.
    npm run dev
    ```
 
-   Use **Try the sample document** or upload your own PDF.
+   Use **Try the sample document** or upload your own PDF or .docx file.
 
 ## Deploy to Vercel
 
@@ -50,9 +50,10 @@ Or, from the command line: `npx vercel`, then `npx vercel env add …` for each 
 
 ## Demo notes
 
-- Without a personal key, the server's `OPENAI_API_KEY` is limited to two questions and the first five PDF pages.
+- Without a personal key, the server's `OPENAI_API_KEY` is limited to two questions and the first five pages of each document.
 - Entering a personal OpenAI key in the sidebar removes both limits. The key stays in the browser tab (session storage), is sent only with that visitor's requests, and is never stored on the server.
 - Replacing a document deletes the previous one's namespace, and so does removing it or closing the tab.
 - The trial limit is enforced with a signed token, not a database, so a determined visitor can reset it by starting over. Add a store such as Upstash Redis if you need a strict limit.
+- Supported files: PDF and Word (.docx). Older .doc files need to be saved as .docx or PDF first.
 - PDFs need selectable text. Scanned, image-only PDFs are not OCR-processed.
 - `public/sample.pdf` is served publicly as the demo document.

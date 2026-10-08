@@ -11,7 +11,7 @@ export const TOP_K = 3;
 
 export const TRIAL_QUESTIONS = 2;
 export const TRIAL_PAGES = 5;
-// Guards against oversized requests; the browser sends extracted text, not the PDF.
+// Guards against oversized requests; the browser sends extracted text, not the file.
 export const MAX_CHARS_PER_PAGE_TRIAL = 10_000;
 export const MAX_TOTAL_CHARS = 1_000_000;
 

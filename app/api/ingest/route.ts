@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
   const userKey = request.headers.get(USER_KEY_HEADER)?.trim() || null;
   const trial = !userKey;
-  const name = typeof body.name === "string" && body.name ? body.name.slice(0, 200) : "document.pdf";
+  const name = typeof body.name === "string" && body.name ? body.name.slice(0, 200) : "document";
   if (!Array.isArray(body.pages) || body.pages.some((page) => typeof page !== "string")) {
     return Response.json({ error: "Invalid request body." } satisfies ApiError, { status: 400 });
   }
@@ -38,13 +38,13 @@ export async function POST(request: Request) {
   const rawText = pages.join("\n");
   if (!rawText.trim()) {
     return Response.json(
-      { error: "No selectable text was found in this PDF. Scanned, image-only PDFs aren't supported." } satisfies ApiError,
+      { error: "No selectable text was found in this document. Scanned, image-only files aren't supported." } satisfies ApiError,
       { status: 400 },
     );
   }
   if (rawText.length > MAX_TOTAL_CHARS) {
     return Response.json(
-      { error: "This document is too large for the demo. Try a shorter PDF." } satisfies ApiError,
+      { error: "This document is too large for the demo. Try a shorter document." } satisfies ApiError,
       { status: 413 },
     );
   }
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       send({ type: "ready", token: signSession({ ns: namespace, ...document, q: questionsUsed }), document, questionsUsed });
     } catch (error) {
       await deleteNamespace(namespace);
-      send({ type: "error", message: `Could not process this PDF: ${describeError(error)}` });
+      send({ type: "error", message: `Could not process this document: ${describeError(error)}` });
     }
   });
 }

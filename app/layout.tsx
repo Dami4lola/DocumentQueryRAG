@@ -7,7 +7,7 @@ const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Papertrail · Document Q&A",
-  description: "Chat with your PDF and get answers grounded in the document.",
+  description: "Chat with your PDF or Word document and get answers grounded in the document.",
 };
 
 export const viewport: Viewport = {

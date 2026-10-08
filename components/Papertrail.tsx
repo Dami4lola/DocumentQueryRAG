@@ -8,7 +8,15 @@ import { EmptyState } from "@/components/EmptyState";
 import { IngestProgress, type IngestState } from "@/components/IngestProgress";
 import type { ChatMessage } from "@/components/Message";
 import { Notice, Sidebar } from "@/components/Sidebar";
-import { ApiRequestError, askQuestion, deleteDocument, extractPdfPages, fetchConfig, ingestDocument } from "@/lib/api";
+import {
+  ApiRequestError,
+  askQuestion,
+  deleteDocument,
+  extractDocumentPages,
+  fetchConfig,
+  ingestDocument,
+} from "@/lib/api";
+import { ACCEPTED_FILES } from "@/lib/documents";
 import type { ConfigResponse, DocumentInfo } from "@/lib/types";
 
 const USER_KEY_STORAGE = "papertrail:openai-key";
@@ -82,7 +90,7 @@ export function Papertrail() {
     setSidebarOpen(false);
     setIngest({ fileName: name, stage: "reading" });
     try {
-      const { pages, totalPages } = await extractPdfPages(file);
+      const { pages, totalPages } = await extractDocumentPages(file, name);
       for await (const event of ingestDocument({ name, pages, totalPages, previousToken: token }, userKey.trim())) {
         if (event.type === "progress") {
           setIngest(event.stage === "embedding" ? { fileName: name, ...event } : { fileName: name, stage: "indexing" });
@@ -96,7 +104,7 @@ export function Papertrail() {
         }
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not process this PDF.");
+      setError(caught instanceof Error ? caught.message : "Could not process this document.");
     } finally {
       setIngest(null);
     }
@@ -104,10 +112,6 @@ export function Papertrail() {
 
   function onFileChosen(file: File | undefined) {
     if (!file) return;
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Only PDF files are supported.");
-      return;
-    }
     processFile(file, file.name);
   }
 
@@ -189,7 +193,7 @@ export function Papertrail() {
       <input
         ref={fileInput}
         type="file"
-        accept="application/pdf,.pdf"
+        accept={ACCEPTED_FILES}
         className="hidden"
         onChange={(event) => {
           onFileChosen(event.target.files?.[0]);

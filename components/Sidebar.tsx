@@ -122,7 +122,7 @@ export function Sidebar({
                   style={{ width: `${(remaining / trialQuestions) * 100}%` }}
                 />
               </div>
-              <p className="mt-2 text-xs text-muted">First {trialPages} pages of each PDF are indexed.</p>
+              <p className="mt-2 text-xs text-muted">First {trialPages} pages of each document are indexed.</p>
             </>
           )}
         </div>
@@ -166,8 +166,8 @@ export function Sidebar({
           >
             <Upload className="size-4 text-brand" />
             <span>
-              <span className="font-medium">Upload a PDF</span>
-              <span className="block text-xs text-muted">Text-based PDFs only</span>
+              <span className="font-medium">Upload a document</span>
+              <span className="block text-xs text-muted">PDF or Word (.docx)</span>
             </span>
           </button>
         )}

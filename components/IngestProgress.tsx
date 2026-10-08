@@ -8,7 +8,7 @@ export type IngestState = {
 };
 
 const STAGES = [
-  { id: "reading", label: "Reading the PDF" },
+  { id: "reading", label: "Reading the document" },
   { id: "embedding", label: "Understanding the passages" },
   { id: "indexing", label: "Building the search index" },
 ] as const;

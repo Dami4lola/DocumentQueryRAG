@@ -1,5 +1,6 @@
-/** Browser-side helpers: PDF text extraction and calls to the API routes. */
+/** Browser-side helpers: document text extraction and calls to the API routes. */
 
+import { documentKind, splitIntoPages } from "@/lib/documents";
 import { readNdjson } from "@/lib/ndjson";
 import {
   USER_KEY_HEADER,
@@ -16,7 +17,32 @@ export class ApiRequestError extends Error {
   }
 }
 
-export async function extractPdfPages(file: Blob): Promise<{ pages: string[]; totalPages: number }> {
+type ExtractedPages = { pages: string[]; totalPages: number };
+
+export async function extractDocumentPages(file: Blob, name: string): Promise<ExtractedPages> {
+  if (name.toLowerCase().endsWith(".doc")) {
+    throw new ApiRequestError("Older .doc files aren't supported. Save it as .docx or PDF and try again.");
+  }
+  const kind = documentKind(name, file.type);
+  if (kind === "pdf") return extractPdfPages(file);
+  if (kind === "docx") return extractDocxPages(file);
+  throw new ApiRequestError("Only PDF and Word (.docx) files are supported.");
+}
+
+async function extractDocxPages(file: Blob): Promise<ExtractedPages> {
+  const mammoth = await import("mammoth");
+  let text: string;
+  try {
+    ({ value: text } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() }));
+  } catch {
+    throw new ApiRequestError("This file couldn't be read as a Word document.");
+  }
+  const pages = splitIntoPages(text);
+  if (pages.length === 0) throw new ApiRequestError("No text was found in this document.");
+  return { pages, totalPages: pages.length };
+}
+
+async function extractPdfPages(file: Blob): Promise<ExtractedPages> {
   const { getDocumentProxy, extractText } = await import("unpdf");
   let pdf;
   try {

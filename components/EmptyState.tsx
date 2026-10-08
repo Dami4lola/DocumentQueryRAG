@@ -11,7 +11,7 @@ type Props = {
 };
 
 const STEPS = [
-  { icon: FileUp, title: "Add a document", body: "Upload a PDF or use the ready-made sample." },
+  { icon: FileUp, title: "Add a document", body: "Upload a PDF or Word file, or use the ready-made sample." },
   { icon: MessageSquareText, title: "Ask naturally", body: "No keywords or special prompts required." },
   { icon: Quote, title: "Get grounded answers", body: "See the passages used to answer your question." },
 ];
@@ -26,7 +26,7 @@ export function EmptyState({ disabled, onPickFile, onFile, onSample }: Props) {
         Good questions deserve clear answers.
       </h1>
       <p className="mt-4 max-w-xl text-lg text-muted">
-        Chat with your PDF and get answers grounded in the document, with the passages behind every answer.
+        Chat with your PDF or Word document and get answers grounded in the document, with the passages behind every answer.
       </p>
 
       <div
@@ -48,8 +48,8 @@ export function EmptyState({ disabled, onPickFile, onFile, onSample }: Props) {
         <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-soft text-brand">
           <FileUp className="size-6" />
         </div>
-        <h2 className="mt-4 font-display text-xl font-bold tracking-tight">Drop a PDF here</h2>
-        <p className="mt-1 text-sm text-muted">or choose one from your computer. Text-based PDFs only.</p>
+        <h2 className="mt-4 font-display text-xl font-bold tracking-tight">Drop a PDF or Word file here</h2>
+        <p className="mt-1 text-sm text-muted">or choose one from your computer. PDF or .docx, text-based files only.</p>
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button
             type="button"
@@ -57,7 +57,7 @@ export function EmptyState({ disabled, onPickFile, onFile, onSample }: Props) {
             disabled={disabled}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-hover disabled:opacity-50 sm:w-auto dark:text-[#0c1310]"
           >
-            <FileUp className="size-4" /> Choose a PDF
+            <FileUp className="size-4" /> Choose a file
           </button>
           <button
             type="button"
